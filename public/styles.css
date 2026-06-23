@@ -1,0 +1,344 @@
+:root {
+  color-scheme: light;
+
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --text: #162033;
+  --muted: #5e6a7d;
+  --border: #cbd5e1;
+  --border-strong: #94a3b8;
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --error: #b91c1c;
+
+  --field-bg: #ffffff;
+  --field-text: #111827;
+  --field-muted: #6b7280;
+  --field-focus: #2563eb;
+
+  --select-bg: #ffffff;
+  --select-text: #111827;
+  --select-option-bg: #ffffff;
+  --select-option-text: #111827;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    Segoe UI,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.shell {
+  width: min(1100px, calc(100% - 32px));
+  margin: 32px auto;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.hero h1 {
+  margin: 0 0 8px;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  letter-spacing: -0.04em;
+}
+
+.hero p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--accent) !important;
+  margin-bottom: 8px !important;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 16px 45px rgb(22 32 51 / 0.08);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+h2 {
+  margin: 0 0 16px;
+  font-size: 1.1rem;
+}
+
+.section-title h2 {
+  margin: 0;
+}
+
+label {
+  display: block;
+  margin: 16px 0 8px;
+  font-weight: 700;
+}
+
+textarea,
+input,
+select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font: inherit;
+  background: var(--field-bg);
+  color: var(--field-text);
+  outline: none;
+}
+
+textarea::placeholder,
+input::placeholder {
+  color: var(--field-muted);
+}
+
+textarea:focus,
+input:focus,
+select:focus {
+  border-color: var(--field-focus);
+  box-shadow: 0 0 0 4px rgb(37 99 235 / 0.16);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 180px;
+  line-height: 1.5;
+}
+
+select {
+  min-height: 46px;
+  background-color: var(--select-bg);
+  color: var(--select-text);
+  cursor: pointer;
+  appearance: auto;
+}
+
+select option,
+select optgroup {
+  background-color: var(--select-option-bg);
+  color: var(--select-option-text);
+}
+
+select:disabled,
+input:disabled,
+textarea:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+input[type="range"] {
+  padding-left: 0;
+  padding-right: 0;
+  background: transparent;
+  border-color: transparent;
+}
+
+input[type="range"]:focus {
+  box-shadow: none;
+}
+
+button,
+a[download] {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: var(--accent);
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+button:hover,
+a[download]:hover {
+  background: var(--accent-dark);
+}
+
+button:focus-visible,
+a[download]:focus-visible {
+  outline: 4px solid rgb(37 99 235 / 0.28);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+button.secondary {
+  background: #ffffff;
+  color: var(--accent);
+  border: 1px solid var(--border);
+}
+
+button.secondary:hover {
+  border-color: var(--accent);
+  background: #eff6ff;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+#status.error {
+  color: var(--error);
+  font-weight: 700;
+}
+
+audio {
+  width: 100%;
+  margin: 8px 0 16px;
+}
+
+.result-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: rgb(127 127 127 / 0.12);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.file-list {
+  display: grid;
+  gap: 12px;
+}
+
+.file-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.file-item a {
+  color: var(--accent);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.file-meta {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 800px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions,
+  .file-item,
+  .section-title {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --bg: #0b1120;
+    --card: #111827;
+    --text: #e5e7eb;
+    --muted: #a7b0c0;
+    --border: #334155;
+    --border-strong: #64748b;
+    --accent: #60a5fa;
+    --accent-dark: #3b82f6;
+    --error: #fca5a5;
+
+    --field-bg: #0f172a;
+    --field-text: #f8fafc;
+    --field-muted: #94a3b8;
+    --field-focus: #60a5fa;
+
+    /*
+      Keep dropdown menus light for readability on Windows/Chrome/Edge,
+      where native option popups can ignore dark theme styling.
+    */
+    --select-bg: #ffffff;
+    --select-text: #111827;
+    --select-option-bg: #ffffff;
+    --select-option-text: #111827;
+  }
+
+  .card {
+    box-shadow: 0 16px 45px rgb(0 0 0 / 0.28);
+  }
+
+  button.secondary {
+    background: transparent;
+    color: var(--accent);
+    border-color: var(--border-strong);
+  }
+
+  button.secondary:hover {
+    background: rgb(96 165 250 / 0.12);
+    border-color: var(--accent);
+  }
+
+  select:disabled,
+  input:disabled,
+  textarea:disabled {
+    background: #1e293b;
+    color: #94a3b8;
+  }
+}
