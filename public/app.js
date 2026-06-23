@@ -1,3 +1,11 @@
+const addToQueue = document.querySelector('#addToQueue');
+const addSplitToQueue = document.querySelector('#addSplitToQueue');
+const clearQueue = document.querySelector('#clearQueue');
+const startQueue = document.querySelector('#startQueue');
+const queueList = document.querySelector('#queueList');
+
+let queue = [];
+let isProcessingQueue = false;
 const text = document.querySelector('#text');
 const charCount = document.querySelector('#charCount');
 const locale = document.querySelector('#locale');
@@ -147,22 +155,7 @@ async function synthesize() {
   setStatus('Generating MP3...');
 
   try {
-    const data = await fetchJson('/api/synthesize', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        text: text.value,
-        locale: locale.value === 'all' ? getSelectedVoice()?.locale || 'en-US' : locale.value,
-        voice: voice.value,
-        style: style.value,
-        rate: Number(rate.value),
-        pitch: Number(pitch.value),
-        volume: volume.value,
-        format: format.value
-      })
-    });
+    const data = await synthesizePayload(getSynthesisPayload());
 
     const urlWithCacheBust = `${data.url}?t=${Date.now()}`;
     audio.src = urlWithCacheBust;
@@ -178,6 +171,172 @@ async function synthesize() {
   } finally {
     generate.disabled = false;
   }
+}
+
+async function synthesizePayload(payload) {
+  return fetchJson('/api/synthesize', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+function getSynthesisPayload(entryText = text.value) {
+  return {
+    text: entryText,
+    locale: locale.value === 'all' ? getSelectedVoice()?.locale || 'en-US' : locale.value,
+    voice: voice.value,
+    style: style.value,
+    rate: Number(rate.value),
+    pitch: Number(pitch.value),
+    volume: volume.value,
+    format: format.value
+  };
+}
+
+function renderQueue() {
+  queueList.innerHTML = '';
+
+  if (!queue.length) {
+    queueList.innerHTML = '<p class="hint">No entries queued.</p>';
+    return;
+  }
+
+  queue.forEach((item, index) => {
+    const row = document.createElement('div');
+    row.className = `queue-item queue-item-${item.status}`;
+
+    const preview = item.text.length > 120
+      ? `${item.text.slice(0, 120)}...`
+      : item.text;
+
+    row.innerHTML = `
+      <div>
+        <strong>${index + 1}. ${item.status}</strong>
+        <div class="queue-preview"></div>
+        ${item.fileName ? `<a href="${item.url}" download>${item.fileName}</a>` : ''}
+        ${item.error ? `<div class="queue-error">${item.error}</div>` : ''}
+      </div>
+      <button type="button" class="secondary" data-remove="${item.id}" ${isProcessingQueue ? 'disabled' : ''}>Remove</button>
+    `;
+
+    row.querySelector('.queue-preview').textContent = preview;
+    queueList.appendChild(row);
+  });
+
+  queueList.querySelectorAll('[data-remove]').forEach((button) => {
+    button.addEventListener('click', () => {
+      queue = queue.filter((item) => item.id !== button.dataset.remove);
+      renderQueue();
+    });
+  });
+}
+
+function addEntryToQueue(entryText) {
+  const value = String(entryText || '').trim();
+
+  if (!value) {
+    setStatus('Text is required.', true);
+    return;
+  }
+
+  if (value.length > 5000) {
+    setStatus('Each queued entry must be under 5,000 characters.', true);
+    return;
+  }
+
+  queue.push({
+    id: crypto.randomUUID(),
+    text: value,
+    status: 'queued',
+    fileName: '',
+    url: '',
+    error: ''
+  });
+
+  renderQueue();
+  setStatus(`Queued ${queue.length} entr${queue.length === 1 ? 'y' : 'ies'}.`);
+}
+
+function addCurrentTextToQueue() {
+  addEntryToQueue(text.value);
+}
+
+function addParagraphsToQueue() {
+  const entries = text.value
+    .split(/\n\s*\n/g)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (!entries.length) {
+    setStatus('No paragraphs found to queue.', true);
+    return;
+  }
+
+  for (const entry of entries) {
+    addEntryToQueue(entry);
+  }
+
+  setStatus(`Queued ${entries.length} paragraph${entries.length === 1 ? '' : 's'}.`);
+}
+
+async function processQueue() {
+  if (isProcessingQueue || !queue.length) return;
+
+  isProcessingQueue = true;
+  startQueue.disabled = true;
+  addToQueue.disabled = true;
+  addSplitToQueue.disabled = true;
+  clearQueue.disabled = true;
+
+  try {
+    for (const item of queue) {
+      if (item.status === 'done') continue;
+
+      item.status = 'generating';
+      item.error = '';
+      renderQueue();
+      setStatus(`Generating queued file ${queue.indexOf(item) + 1} of ${queue.length}...`);
+
+      try {
+        const data = await synthesizePayload(getSynthesisPayload(item.text));
+
+        item.status = 'done';
+        item.fileName = data.fileName;
+        item.url = data.url;
+
+        audio.src = `${data.url}?t=${Date.now()}`;
+        download.href = data.url;
+        download.download = data.fileName;
+        ssml.textContent = data.ssml;
+        resultCard.hidden = false;
+      } catch (error) {
+        item.status = 'failed';
+        item.error = error.message;
+      }
+
+      renderQueue();
+      await loadSavedFiles();
+    }
+
+    setStatus('Queue finished.');
+  } finally {
+    isProcessingQueue = false;
+    startQueue.disabled = false;
+    addToQueue.disabled = false;
+    addSplitToQueue.disabled = false;
+    clearQueue.disabled = false;
+    renderQueue();
+  }
+}
+
+function clearQueuedEntries() {
+  if (isProcessingQueue) return;
+  queue = [];
+  renderQueue();
+  setStatus('Queue cleared.');
 }
 
 async function loadSavedFiles() {
@@ -215,7 +374,12 @@ voice.addEventListener('change', updateVoiceDetails);
 loadVoices.addEventListener('click', loadAvailableVoices);
 generate.addEventListener('click', synthesize);
 refreshFiles.addEventListener('click', loadSavedFiles);
+addToQueue.addEventListener('click', addCurrentTextToQueue);
+addSplitToQueue.addEventListener('click', addParagraphsToQueue);
+clearQueue.addEventListener('click', clearQueuedEntries);
+startQueue.addEventListener('click', processQueue);
 
 updateCounters();
 loadSavedFiles();
+renderQueue();
 loadAvailableVoices().catch(() => undefined);

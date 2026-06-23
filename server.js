@@ -107,20 +107,22 @@ function createSpeechConfig(formatKey, voice) {
   return { speechConfig, format };
 }
 
+function closeSynthesizer(synthesizer) {
+  return new Promise((resolve) => {
+    // Do not reject from cleanup; preserve the original synthesis result/error.
+    synthesizer.close(resolve, resolve);
+  });
+}
+
 function speakSsmlToFile(speechConfig, ssml, outputPath) {
   return new Promise((resolve, reject) => {
     const audioConfig = sdk.AudioConfig.fromAudioFileOutput(outputPath);
     const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
 
-    const cleanup = () => {
-      audioConfig.close();
-      synthesizer.close();
-    };
-
     synthesizer.speakSsmlAsync(
       ssml,
-      (result) => {
-        cleanup();
+      async (result) => {
+        await closeSynthesizer(synthesizer);
 
         if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
           resolve(result);
@@ -128,10 +130,14 @@ function speakSsmlToFile(speechConfig, ssml, outputPath) {
         }
 
         const cancellation = sdk.CancellationDetails.fromResult(result);
-        reject(new Error(cancellation.errorDetails || result.errorDetails || 'Speech synthesis did not complete.'));
+        reject(new Error(
+          cancellation.errorDetails ||
+          result.errorDetails ||
+          'Speech synthesis did not complete.'
+        ));
       },
-      (error) => {
-        cleanup();
+      async (error) => {
+        await closeSynthesizer(synthesizer);
         reject(new Error(typeof error === 'string' ? error : JSON.stringify(error)));
       }
     );

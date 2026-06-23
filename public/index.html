@@ -1,11 +1,13 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Azure Text to Speech</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
+
 <body>
   <main class="shell">
     <header class="hero">
@@ -20,6 +22,12 @@
       <label for="text">Text</label>
       <textarea id="text" rows="8" maxlength="5000">Hello! This is a simple Azure text to speech demo.</textarea>
       <div class="hint"><span id="charCount">0</span> / 5000 characters</div>
+
+      <div class="queue-actions">
+        <button id="addToQueue" type="button" class="secondary">Add to queue</button>
+        <button id="addSplitToQueue" type="button" class="secondary">Add paragraphs to queue</button>
+        <button id="clearQueue" type="button" class="secondary">Clear queue</button>
+      </div>
     </section>
 
     <section class="grid">
@@ -43,7 +51,8 @@
           <option value="fi-FI">Finnish (Finland) - fi-FI</option>
           <option value="all">All Azure voices</option>
         </select>
-        <p class="hint">Choose a locale, then load Azure voices for that language. Select “All Azure voices” to browse everything.</p>
+        <p class="hint">Choose a locale, then load Azure voices for that language. Select “All Azure voices” to browse
+          everything.</p>
 
         <label for="voice">Voice</label>
         <select id="voice">
@@ -90,6 +99,16 @@
       </div>
     </section>
 
+    <section class="card">
+      <div class="section-title">
+        <h2>Generation queue</h2>
+        <button id="startQueue" type="button">Generate queued files</button>
+      </div>
+      <p class="hint">Each queued entry will generate one MP3 file using the currently selected voice and parameters.
+      </p>
+      <div id="queueList" class="queue-list"></div>
+    </section>
+
     <section class="card actions">
       <button id="generate" type="button">Generate MP3</button>
       <span id="status" role="status"></span>
@@ -118,4 +137,5 @@
 
   <script src="/app.js"></script>
 </body>
+
 </html>

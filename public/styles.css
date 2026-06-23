@@ -278,6 +278,53 @@ pre {
   font-size: 0.85rem;
 }
 
+.queue-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.queue-list {
+  display: grid;
+  gap: 12px;
+}
+
+.queue-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.queue-preview {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-top: 4px;
+  white-space: pre-wrap;
+}
+
+.queue-error {
+  color: var(--error);
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.queue-item-generating {
+  border-color: var(--accent);
+}
+
+.queue-item-done {
+  opacity: 0.85;
+}
+
+.queue-item-failed {
+  border-color: var(--error);
+}
+
 @media (max-width: 800px) {
   .grid {
     grid-template-columns: 1fr;
@@ -285,6 +332,7 @@ pre {
 
   .actions,
   .file-item,
+  .queue-item,
   .section-title {
     align-items: stretch;
     flex-direction: column;
