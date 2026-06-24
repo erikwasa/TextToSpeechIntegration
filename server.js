@@ -11,6 +11,7 @@ const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const OUTPUT_DIR = path.join(__dirname, 'outputs');
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const MAX_FILE_NAME_LENGTH = 120;
 
 const AUDIO_FORMATS = {
   mp3_24khz_160kbps: {
@@ -77,6 +78,62 @@ function escapeXml(value = '') {
 function percentString(value) {
   const number = clampNumber(value, 0, -100, 100);
   return number > 0 ? `+${number}%` : `${number}%`;
+}
+
+function defaultBaseFileName() {
+  return `${new Date().toISOString().replace(/[:.]/g, '-')}-${crypto.randomUUID()}`;
+}
+
+function stripExtension(fileName, extension) {
+  const value = String(fileName || '').trim();
+  const suffix = `.${extension}`;
+
+  return value.toLowerCase().endsWith(suffix.toLowerCase())
+    ? value.slice(0, -suffix.length)
+    : value;
+}
+
+function sanitizeBaseFileName(fileName, extension) {
+  const cleaned = stripExtension(fileName, extension)
+    .replace(/[<>:"/\\|?*\x00-\x1f]+/g, '-')
+    .replace(/\s+/g, ' ')
+    .replace(/-+/g, '-')
+    .trim()
+    .replace(/^[. ]+|[. ]+$/g, '')
+    .slice(0, MAX_FILE_NAME_LENGTH)
+    .trim()
+    .replace(/[. ]+$/g, '');
+
+  if (!cleaned) return '';
+
+  // Avoid Windows reserved device names so downloaded files behave correctly there too.
+  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(cleaned)) {
+    return `${cleaned}-file`;
+  }
+
+  return cleaned;
+}
+
+async function getAvailableOutputFile(baseName, extension) {
+  const safeBaseName = sanitizeBaseFileName(baseName, extension) || defaultBaseFileName();
+
+  for (let attempt = 0; attempt < 1000; attempt += 1) {
+    const suffix = attempt === 0 ? '' : `-${attempt + 1}`;
+    const fileName = `${safeBaseName}${suffix}.${extension}`;
+    const outputPath = path.join(OUTPUT_DIR, fileName);
+
+    try {
+      await fs.access(outputPath);
+    } catch (error) {
+      if (error && error.code === 'ENOENT') {
+        return { fileName, outputPath };
+      }
+
+      throw error;
+    }
+  }
+
+  throw new Error('Could not find an available filename. Try a more specific filename.');
 }
 
 function buildSsml({ text, voice, locale, rate, pitch, volume, style }) {
@@ -228,8 +285,11 @@ app.post('/api/synthesize', async (req, res) => {
     const style = String(req.body.style || '').trim();
 
     const { speechConfig, format } = createSpeechConfig(formatKey, voice);
-    const fileName = `${new Date().toISOString().replace(/[:.]/g, '-')}-${crypto.randomUUID()}.${format.extension}`;
-    const outputPath = path.join(OUTPUT_DIR, fileName);
+    const requestedFileName = String(req.body.fileName || req.body.filename || '').trim();
+    const { fileName, outputPath } = await getAvailableOutputFile(
+      requestedFileName || defaultBaseFileName(),
+      format.extension
+    );
     const ssml = buildSsml({ text, voice, locale, rate, pitch, volume, style });
 
     await speakSsmlToFile(speechConfig, ssml, outputPath);
