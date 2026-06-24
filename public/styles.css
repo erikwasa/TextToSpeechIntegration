@@ -267,10 +267,16 @@ pre {
   border-radius: 12px;
 }
 
-.file-item a {
-  color: var(--accent);
-  font-weight: 700;
+.file-item a.file-download {
+  color: #ffffff;
+  font-weight: 800;
   overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.file-item a.file-download:hover,
+.file-item a.file-download:focus-visible {
+  color: #ffffff;
 }
 
 .file-meta {
@@ -298,6 +304,14 @@ pre {
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: 12px;
+}
+
+.queue-requested-file {
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
 }
 
 .queue-preview {

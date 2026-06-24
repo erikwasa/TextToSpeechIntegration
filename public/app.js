@@ -7,6 +7,7 @@ const queueList = document.querySelector('#queueList');
 let queue = [];
 let isProcessingQueue = false;
 const text = document.querySelector('#text');
+const filename = document.querySelector('#filename');
 const charCount = document.querySelector('#charCount');
 const locale = document.querySelector('#locale');
 const voice = document.querySelector('#voice');
@@ -183,8 +184,8 @@ async function synthesizePayload(payload) {
   });
 }
 
-function getSynthesisPayload(entryText = text.value) {
-  return {
+function getSynthesisPayload(entryText = text.value, requestedFileName = filename.value) {
+  const payload = {
     text: entryText,
     locale: locale.value === 'all' ? getSelectedVoice()?.locale || 'en-US' : locale.value,
     voice: voice.value,
@@ -194,6 +195,33 @@ function getSynthesisPayload(entryText = text.value) {
     volume: volume.value,
     format: format.value
   };
+
+  const cleanRequestedFileName = String(requestedFileName || '').trim();
+  if (cleanRequestedFileName) {
+    payload.fileName = cleanRequestedFileName;
+  }
+
+  return payload;
+}
+
+function stripMp3Extension(value) {
+  return String(value || '').trim().replace(/\.mp3$/i, '');
+}
+
+function getNumberedQueueFileName(baseFileName, index, total) {
+  const cleanBaseFileName = stripMp3Extension(baseFileName);
+  if (!cleanBaseFileName) return '';
+
+  const width = Math.max(2, String(total).length);
+  return `${cleanBaseFileName}-${String(index + 1).padStart(width, '0')}`;
+}
+
+function createDownloadLink(url, fileName) {
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.textContent = fileName;
+  return link;
 }
 
 function renderQueue() {
@@ -215,14 +243,35 @@ function renderQueue() {
     row.innerHTML = `
       <div>
         <strong>${index + 1}. ${item.status}</strong>
+        <div class="queue-requested-file"></div>
         <div class="queue-preview"></div>
-        ${item.fileName ? `<a href="${item.url}" download>${item.fileName}</a>` : ''}
-        ${item.error ? `<div class="queue-error">${item.error}</div>` : ''}
+        <div class="queue-result"></div>
+        <div class="queue-error"></div>
       </div>
       <button type="button" class="secondary" data-remove="${item.id}" ${isProcessingQueue ? 'disabled' : ''}>Remove</button>
     `;
 
+    const requestedFileName = row.querySelector('.queue-requested-file');
+    if (item.requestedFileName) {
+      requestedFileName.textContent = `Requested filename: ${item.requestedFileName}`;
+    } else {
+      requestedFileName.remove();
+    }
+
     row.querySelector('.queue-preview').textContent = preview;
+
+    const result = row.querySelector('.queue-result');
+    if (item.fileName) {
+      result.appendChild(createDownloadLink(item.url, item.fileName));
+    }
+
+    const error = row.querySelector('.queue-error');
+    if (item.error) {
+      error.textContent = item.error;
+    } else {
+      error.remove();
+    }
+
     queueList.appendChild(row);
   });
 
@@ -234,7 +283,7 @@ function renderQueue() {
   });
 }
 
-function addEntryToQueue(entryText) {
+function addEntryToQueue(entryText, requestedFileName = '') {
   const value = String(entryText || '').trim();
 
   if (!value) {
@@ -250,6 +299,7 @@ function addEntryToQueue(entryText) {
   queue.push({
     id: crypto.randomUUID(),
     text: value,
+    requestedFileName: String(requestedFileName || '').trim(),
     status: 'queued',
     fileName: '',
     url: '',
@@ -261,7 +311,7 @@ function addEntryToQueue(entryText) {
 }
 
 function addCurrentTextToQueue() {
-  addEntryToQueue(text.value);
+  addEntryToQueue(text.value, filename.value);
 }
 
 function addParagraphsToQueue() {
@@ -275,9 +325,10 @@ function addParagraphsToQueue() {
     return;
   }
 
-  for (const entry of entries) {
-    addEntryToQueue(entry);
-  }
+  const baseFileName = filename.value;
+  entries.forEach((entry, index) => {
+    addEntryToQueue(entry, getNumberedQueueFileName(baseFileName, index, entries.length));
+  });
 
   setStatus(`Queued ${entries.length} paragraph${entries.length === 1 ? '' : 's'}.`);
 }
@@ -301,7 +352,7 @@ async function processQueue() {
       setStatus(`Generating queued file ${queue.indexOf(item) + 1} of ${queue.length}...`);
 
       try {
-        const data = await synthesizePayload(getSynthesisPayload(item.text));
+        const data = await synthesizePayload(getSynthesisPayload(item.text, item.requestedFileName));
 
         item.status = 'done';
         item.fileName = data.fileName;
@@ -352,13 +403,20 @@ async function loadSavedFiles() {
     for (const file of data.files) {
       const item = document.createElement('div');
       item.className = 'file-item';
-      item.innerHTML = `
-        <div>
-          <a href="${file.url}" download>${file.name}</a>
-          <div class="file-meta">${formatBytes(file.sizeBytes)} · ${new Date(file.updatedAt).toLocaleString()}</div>
-        </div>
-        <audio controls src="${file.url}"></audio>
-      `;
+
+      const fileDetails = document.createElement('div');
+      const link = createDownloadLink(file.url, file.name);
+      link.className = 'file-download';
+      const meta = document.createElement('div');
+      meta.className = 'file-meta';
+      meta.textContent = `${formatBytes(file.sizeBytes)} · ${new Date(file.updatedAt).toLocaleString()}`;
+      fileDetails.append(link, meta);
+
+      const player = document.createElement('audio');
+      player.controls = true;
+      player.src = file.url;
+
+      item.append(fileDetails, player);
       fileList.appendChild(item);
     }
   } catch (error) {
